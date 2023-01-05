@@ -377,6 +377,8 @@ static const char *QR_CHAR_MAP[] = {
 };
 
 void QrCode::print() const {
+	std::stringstream rendered_code;
+
 	for (int y = 0; y < getSize(); y += 2) {
         for (int x = 0; x < getSize(); x++) {
             // 2'b{TOP, BOTTOM}
@@ -384,11 +386,13 @@ void QrCode::print() const {
             top |= getModule(x, y);
             top |= getModule(x, y + 1) << 1;
 
-            std::cout << QR_CHAR_MAP[top];
+            rendered_code << QR_CHAR_MAP[top];
         }
 
-        std::cout << std::endl;
+        rendered_code << std::endl;
     }
+
+	std::cout << rendered_code.str();
 }
 
 

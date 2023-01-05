@@ -8,7 +8,6 @@
 #include <wifi_provisioning/manager.h>
 #include <wifi_provisioning/scheme_ble.h>
 
-#include "utils.h"
 #include "qrcode.hpp"
 
 using namespace qrcode;
@@ -19,6 +18,14 @@ Wifi::Wifi(const std::string &serviceName):
     serviceName(serviceName),
     popSeed(esp_random()) {}
 
+Wifi::~Wifi() {
+    ESP_LOGI(TAG, "Stopping Wifi module.");
+    vEventGroupDelete(wifi_event_group);
+
+    esp_wifi_deinit();
+    esp_netif_deinit();
+}
+
 void Wifi::init() {
     // Initialize network service
     ESP_ERROR_CHECK(esp_netif_init());
@@ -26,12 +33,14 @@ void Wifi::init() {
     wifi_event_group = xEventGroupCreate();
 
     // Setup Wi-Fi handlers
+    // TODO: potential leak, not unregistering handlers.
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, &Wifi::eventHandler, this));
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &Wifi::eventHandler, this));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &Wifi::eventHandler, this));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_GOT_IP6, &Wifi::eventHandler, this));
 
     // Initialize Wi-Fi including netif with default config
+    // TODO: potential leak, never saved.
     esp_netif_create_default_wifi_sta();
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
@@ -54,13 +63,12 @@ void Wifi::init() {
 }
 
 void Wifi::start() {
-    wifi_prov_mgr_reset_provisioning();
-    
     // Check if already provisioned
     bool provisioned = false;
     ESP_ERROR_CHECK(wifi_prov_mgr_is_provisioned(&provisioned));
 
-    if (!provisioned || true) {
+    if (!provisioned) {
+        ESP_LOGI(TAG, "Not provisioned, beginning provisioning.");
         wifi_prov_security_t security = WIFI_PROV_SECURITY_1;
         const char *service_key = NULL;
 
@@ -72,12 +80,15 @@ void Wifi::start() {
         printQRCode();
 
         // Wait for provisioning to finish.
+        ESP_LOGI(TAG, "Finished provisioning.");
+
         wifi_prov_mgr_wait();
+    } else {
+        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+        ESP_ERROR_CHECK(esp_wifi_start());
     }
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());
-
+    wifi_prov_mgr_deinit();
     ESP_LOGI(TAG, "Successfully started Wifi module.");
 }
 
@@ -85,11 +96,18 @@ void Wifi::eventHandler(void *data, esp_event_base_t event_base, int32_t event_i
     if (event_base == IP_EVENT) {
         if (event_id == IP_EVENT_STA_GOT_IP) {
             ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-            ESP_LOGI(TAG, "Connected with IPv4 Address:" IPSTR, IP2STR(&event->ip_info.ip));
+            ESP_LOGI(TAG, "Connected with IPv4 Address: " IPSTR, IP2STR(&event->ip_info.ip));
         }
         if (event_id == IP_EVENT_GOT_IP6) {
             ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
-            ESP_LOGI(TAG, "Connected with IPv6 Address:" IPV6STR, IPV62STR(event->ip6_info.ip));
+            ESP_LOGI(TAG, "Connected with IPv6 Address: " IPV6STR, IPV62STR(event->ip6_info.ip));
+        }
+    }
+
+    if (event_base == WIFI_EVENT) {
+        if (event_id == WIFI_EVENT_STA_START || event_id == WIFI_EVENT_STA_DISCONNECTED) {
+            ESP_LOGI(TAG, "Connecting to Wi-Fi AP...");
+            esp_wifi_connect();
         }
     }
 }

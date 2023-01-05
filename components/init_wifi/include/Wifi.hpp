@@ -16,7 +16,8 @@ class Wifi {
     void printQRCode();
 
 public:
-    Wifi(const std::string &serviceName);
+    explicit Wifi(const std::string &serviceName);
+    ~Wifi();
 
     // Unique device name.
     std::string deviceName();
