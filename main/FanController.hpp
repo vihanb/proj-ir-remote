@@ -51,8 +51,6 @@ public:
     }
 
 private:
-    bool _isActive;
-
     bool _currentSwing;
     Speed _currentSpeed;
 

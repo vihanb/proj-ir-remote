@@ -23,15 +23,7 @@ void App::init() {
     hap_init(HAP_TRANSPORT_WIFI);
 
     // Create accessory object.
-    accessory = std::make_unique<HomeKit::Accessory>(
-        "My Fan",
-        APP_NAME,
-        "SERIALNO",
-        "1.0",
-        "1.0",
-        HAP_CID_FAN
-    );
-    
+    accessory.emplace("My Fan", APP_NAME, "SERIALNO", "1.0", "1.0", HAP_CID_FAN);
     accessory->addService(new FanService {});
 
     hap_set_setup_code(ACCESSORY_SETUP_CODE);

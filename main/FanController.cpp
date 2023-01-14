@@ -4,8 +4,7 @@
 static const char *TAG = "Fan Controller";
 
 FanController::FanController()
-    : _isActive(false),
-      _currentSwing(false),
+    : _currentSwing(false),
       _currentSpeed(Speed::Off),
       remote(GPIO_NUM_4) {
     _queueHandle =
@@ -91,7 +90,7 @@ bool FanController::isSwinging() const {
 
 FanController::Speed FanController::speed() const {
     const std::lock_guard<std::mutex> _lock(_txActive);
-    return _isActive ? Speed::Off : _currentSpeed;
+    return _currentSpeed;
 }
 
 void FanController::commit(Speed targetSpeed, bool targetSwing) {
