@@ -39,7 +39,7 @@ void FanService::writeCharacteristic(std::vector<HomeKit::WriteData> &writeData)
     }
 
     fanController.commit(speed, isSwinging);
-    getCharacteristic(HAP_CHAR_UUID_ACTIVE).value(static_cast<uint8_t>(speed == FanController::Speed::Off));
-    getCharacteristic(HAP_CHAR_UUID_ROTATION_SPEED).value(FanController::speedToScalar(speed));
-    getCharacteristic(HAP_CHAR_UUID_SWING_MODE).value(static_cast<uint8_t>(isSwinging));
+    (*this)[HAP_CHAR_UUID_ACTIVE] = static_cast<uint8_t>(speed == FanController::Speed::Off);
+    (*this)[HAP_CHAR_UUID_ROTATION_SPEED] = FanController::speedToScalar(speed);
+    (*this)[HAP_CHAR_UUID_SWING_MODE] = static_cast<uint8_t>(isSwinging);
 }
