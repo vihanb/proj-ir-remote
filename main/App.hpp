@@ -10,14 +10,10 @@
 
 class App final {
 private:
-    Wifi wifi_module;
-
-    std::optional<HomeKit::Accessory> accessory;
+    WiFi wifiModule {APP_NAME };
+    HomeKit::HomeKit homekit { ACCESSORY_SETUP_CODE, ACCESSORY_SETUP_ID };
 
 public:
-    App(): wifi_module(APP_NAME) {};
-    ~App();
-
     void init();
     void start();
 };
