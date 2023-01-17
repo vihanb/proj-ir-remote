@@ -1,3 +1,3 @@
 manifest_hash: 27cef0156fabbeb50eeea10d8ea01e8ce312d0151f449d1ade045c16d7b94310
-target: esp32
+target: esp32s3
 version: 1.0.0

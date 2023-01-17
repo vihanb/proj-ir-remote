@@ -6,6 +6,8 @@
 #include <qrcode.hpp>
 
 #include "FanService.hpp"
+#include "TemperatureService.hpp"
+#include "HumidityService.hpp"
 
 using namespace qrcode;
 
@@ -20,7 +22,9 @@ void App::init() {
 
     // Create accessory object.
     auto *accessory = homekit.addAccessory("My Fan", APP_NAME, "SERIALNO", "1.0", "1.0", HAP_CID_FAN);
-    accessory->addService(new FanService{});
+    accessory->addService(new FanService {});
+    accessory->addService(new TemperatureService {});
+    accessory->addService(new HumidityService {});
 }
 
 void App::start() {
