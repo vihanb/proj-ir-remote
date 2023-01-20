@@ -1,15 +1,14 @@
 #pragma once
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
 #include <cstdint>
 #include <esp_log.h>
 #include <driver/rmt.h>
 #include <mutex>
+#include <CXXFreeRTOS.hpp>
 
 #include <Lasko.hpp>
 
-class FanController {
+class FanController : private FreeRTOS::Task {
 public:
     enum class Speed {
         Off = 0,
@@ -51,41 +50,36 @@ public:
     }
 
 private:
-    bool _currentSwing;
-    Speed _currentSpeed;
-
-    struct _QueueData {
+    struct QueueData {
         Speed speed;
         bool swing;
     };
-    
-    uint8_t _queueStorage[sizeof(_QueueData)];
-    StaticQueue_t _queue;
-    QueueHandle_t _queueHandle;
-
-    TaskHandle_t _taskHandle;
-    Remote::Lasko::LaskoChannel remote;
-
+    FreeRTOS::Queue<QueueData, 1> _queue;
     mutable std::mutex _txActive;
 
-    static void task(void *params);
-    void handle(const _QueueData &target);
+    Remote::Lasko::LaskoChannel remote;
+
+    [[noreturn]] void task() override;
+    void handle(const QueueData &target);
+
 protected:
+    bool _currentSwing;
+    Speed _currentSpeed;
+
     void _speed(Speed targetSpeed);
     void _power(bool isOn);
     void _isSwinging(bool targetSwing);
 
 public:
-    explicit FanController();
+    explicit FanController(gpio_num_t gpio);
     FanController(const FanController&) = delete;
     FanController(FanController&&) = delete;
-    ~FanController();
 
     bool isSwinging() const;
     Speed speed() const;
 
     /**
-     * Interfaces with transciever and applies specified
+     * Interfaces with transceiver and applies specified
      * changes.
      */
     void commit(Speed targetSpeed, bool targetSwing);

@@ -4,7 +4,7 @@
 
 static const char *TAG = "FanService";
 
-FanService::FanService()
+FanService::FanService(gpio_num_t gpio)
     : HomeKit::Service(
         hap_serv_fan_v2_create(false),
         {
@@ -12,7 +12,7 @@ FanService::FanService()
             hap_char_swing_mode_create(HAP_SWING_MODE_DISABLED),
             hap_char_rotation_speed_create(0),
         }
-    ), fanController() {}
+    ), fanController(gpio) {}
 
 void FanService::writeCharacteristic(std::vector<HomeKit::WriteData> &writeData) {
     auto speed = fanController.speed();

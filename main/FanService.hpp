@@ -10,7 +10,7 @@ class FanService: public HomeKit::Service {
 private:
     FanController fanController;
 public:
-    explicit FanService();
+    explicit FanService(gpio_num_t gpio);
 
     // hap_status_t readCharacteristic(hap_char_t *characteristic) override;
     void writeCharacteristic(std::vector<HomeKit::WriteData> &writeData) override;

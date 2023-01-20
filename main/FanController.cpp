@@ -3,26 +3,13 @@
 
 static const char *TAG = "Fan Controller";
 
-FanController::FanController()
-    : _currentSwing(false),
-      _currentSpeed(Speed::Off),
-      remote(GPIO_NUM_4) {
-    _queueHandle =
-        xQueueCreateStatic(
-            1,
-            sizeof(_QueueData),
-            _queueStorage,
-            &_queue);
+FanController::FanController(gpio_num_t gpio)
+    : FreeRTOS::Task("Fan Controller Handler"),
+      remote(gpio),
+      _currentSwing(false),
+      _currentSpeed(Speed::Off) {}
 
-    xTaskCreate(&FanController::task, "Fan Controller Handler", 4096, this, 5, &_taskHandle);
-}
-
-FanController::~FanController() {
-    vTaskDelete(_taskHandle);
-    vQueueDelete(_queueHandle);
-}
-
-void FanController::handle(const _QueueData &target) {
+void FanController::handle(const QueueData &target) {
     const std::lock_guard<std::mutex> _lock(_txActive);
 
     _speed(target.speed);
@@ -33,13 +20,10 @@ void FanController::handle(const _QueueData &target) {
     // TODO: write back to HomeKit
 }
 
-void FanController::task(void *params) {
-    FanController *controller = static_cast<FanController *>(params);
-    _QueueData target;
-
+[[noreturn]] void FanController::task() {
     while (true) {
-        if (xQueueReceive(controller->_queueHandle, &target, portMAX_DELAY) == pdTRUE) {
-            controller->handle(target);
+        if (auto value = _queue.receive()) {
+            handle(*value);
         }
     }
 }
@@ -94,10 +78,8 @@ FanController::Speed FanController::speed() const {
 }
 
 void FanController::commit(Speed targetSpeed, bool targetSwing) {
-    _QueueData newState = {
+    _queue.overwrite({
         .speed = targetSpeed,
         .swing = targetSwing
-    };
-
-    xQueueOverwrite(_queueHandle, &newState);
+    });
 }
